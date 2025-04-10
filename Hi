@@ -1,35 +1,40 @@
 SELECT 
-    A.ENTITYID,  -- Consolidated Entity (e.g., 888, 111)
-    ROUND(SUM(SUB_SUBPRODUCT), 2) AS SUB_PRODUCT
+    L.ENTITYID,
+    ROUND(L.TOTAL_LOANS * P.PERCENTAGE, 2) AS SUB_PRODUCT
 FROM (
+    -- Subquery to get Total Loans
     SELECT 
-        A.ENTITYID,
-        A.ID AS BASE_ENTITY,  -- Base Entity (e.g., 020MB, 025MB)
-        SUM(A.AMOUNT) AS TOTAL_LOANS,
-        MAX(P.AMOUNT) AS PERCENTAGE,
-        ROUND(SUM(A.AMOUNT) * MAX(P.AMOUNT), 2) AS SUB_SUBPRODUCT
+        ENTITYID,
+        ID,
+
+        SUM(AMOUNT) AS TOTAL_LOANS
     FROM 
-         A
-    JOIN 
-         P
-        ON A.ENTITYID = P.ENTITYID
-        AND A.ID = P.ID
-        AND A.REPORT_ID = P.REPORT_ID
-        AND A.LINEITEM = P.LINEITEM
-        AND A.REPORT_LINE = P.REPORT_LINE
-        AND A.REPORT_COLUMN = P.REPORT_COLUMN
-        AND A.SUB_LINE_ITEM = P.SUB_LINE_ITEM
     WHERE 
-        A.COLITEM = 'A'         -- No of Loans
-        AND P.COLITEM = 'F'     -- Percentage
-        AND A.LINEITEM = 1
-        AND A.REPORT_LINE = 1
-        AND A.REPORT_COLUMN = 'G'
-        AND A.SUB_LINE_ITEM = 0
-        AND A.SHEETNAME = ''
-        
-    GROUP BY 
-        A.ENTITYID, A.ID
-)
-GROUP BY 
-    A.ENTITYID
+        COLITEM = 'A'
+        AND LINEITEM = 1
+        AND REPORT_LINE = 1
+        AND REPORT_COLUMN = 'G'
+        AND SUB_LINE_ITEM = 0
+        AND SHEETNAME = 'CCR003'
+        AND INSTANCE_ID = 'da3b2f48-b557-4439-aa0a-33cb48e8b137'
+    GROUP BY ENTITYID, ID
+) L
+JOIN (
+    -- Subquery to get Percentages
+    SELECT 
+        ENTITYID,
+        ID,
+        MAX(AMOUNT) AS PERCENTAGE
+    FROM 
+    WHERE 
+        COLITEM = 'F'
+        AND LINEITEM = 1
+        AND REPORT_LINE = 1
+        AND REPORT_COLUMN = 'G'
+        AND SUB_LINE_ITEM = 0
+        AND SHEETNAME = ''
+        AND INSTANCE_ID = ''
+    GROUP BY ENTITYID, ID
+) P
+ON L.ENTITYID = P.ENTITYID
+AND L.ID = P.ID
